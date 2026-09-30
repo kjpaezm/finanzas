@@ -165,25 +165,26 @@ def _generar_html(datos, resumen, hormiga, alertas, etf, margen, año, mes) -> s
 """
 
 
-def _enviar_email(smtp_user: str, smtp_pass: str, destinatario: str,
-                   asunto: str, html_body: str) -> tuple[bool, str]:
-    """Envía el email usando Gmail SMTP con TLS."""
+def enviar_correo(destinatario: str, asunto: str, cuerpo: str) -> bool:
+    """Envía un correo electrónico utilizando credenciales seguras de st.secrets."""
     try:
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = asunto
-        msg["From"]    = smtp_user
-        msg["To"]      = destinatario
-        msg.attach(MIMEText(html_body, "html", "utf-8"))
+        # Obtener credenciales desde los secretos de Streamlit
+        smtp_server = st.secrets["smtp"]["server"]
+        smtp_port = st.secrets["smtp"]["port"]
+        smtp_user = st.secrets["smtp"]["user"]
+        smtp_password = st.secrets["smtp"]["password"]
 
-        with smtplib.SMTP("smtp.gmail.com", 587, timeout=15) as server:
-            server.ehlo()
+        msg = MIMEMultipart()
+        msg['From'] = smtp_user
+        msg['To'] = destinatario
+        msg['Subject'] = asunto
+        msg.attach(MIMEText(cuerpo, 'html'))
+
+        with smtplib.SMTP(smtp_server, smtp_port) as server:
             server.starttls()
-            server.login(smtp_user, smtp_pass)
-            server.sendmail(smtp_user, destinatario, msg.as_string())
-        return True, ""
-    except smtplib.SMTPAuthenticationError:
-        return False, "Error de autenticación. Verifica tu contraseña de aplicación Gmail."
-    except smtplib.SMTPException as e:
-        return False, str(e)
+            server.login(smtp_user, smtp_password)
+            server.send_message(msg)
+        return True
     except Exception as e:
-        return False, str(e)
+        st.error(f"Error al enviar correo: {e}")
+        return False
