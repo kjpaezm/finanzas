@@ -4,6 +4,7 @@ Carga y guarda todos los datos del usuario en data/datos.json.
 """
 
 import json
+import uuid
 import os
 from datetime import datetime
 import streamlit as st
@@ -52,30 +53,25 @@ def guardar_datos(datos: dict) -> None:
     st.session_state.data = datos
 
 
-def agregar_transaccion(
-    datos: dict,
-    descripcion: str,
-    categoria: str,
-    tipo: str,          # "ingreso" | "gasto" | "ahorro"
-    importe: float,
-    fecha: str | None = None,
-) -> None:
-    """Añade una transacción y guarda inmediatamente."""
-    tx = {
-        "fecha": fecha or datetime.today().strftime("%Y-%m-%d"),
-        "descripcion": descripcion,
-        "categoria": categoria,
+def agregar_transaccion(datos: dict, fecha: str, tipo: str, categoria: str, monto: float, descripcion: str) -> dict:
+    """Añade una nueva transacción asignándole un UUID único."""
+    nueva_transaccion = {
+        "id": str(uuid.uuid4()),  # Genera ID único
+        "fecha": fecha,
         "tipo": tipo,
-        "importe": round(abs(importe), 2),
+        "categoria": categoria,
+        "monto": monto,
+        "descripcion": descripcion
     }
-    datos["transacciones"].append(tx)
+    datos.setdefault("transacciones", []).append(nueva_transaccion)
     guardar_datos(datos)
+    return datos
 
-
-def eliminar_transaccion(datos: dict, indice: int) -> None:
-    if 0 <= indice < len(datos["transacciones"]):
-        datos["transacciones"].pop(indice)
-        guardar_datos(datos)
+def eliminar_transaccion_por_id(datos: dict, transaccion_id: str) -> dict:
+    """Elimina una transacción específica mediante su ID único."""
+    datos["transacciones"] = [t for t in datos.get("transacciones", []) if t.get("id") != transaccion_id]
+    guardar_datos(datos)
+    return datos
 
 
 def agregar_objetivo(
